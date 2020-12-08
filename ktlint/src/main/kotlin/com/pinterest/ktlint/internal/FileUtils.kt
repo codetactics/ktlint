@@ -43,7 +43,7 @@ internal fun JarFiles.toFilesURIList() = map {
 
 // a complete solution would be to implement https://www.gnu.org/software/bash/manual/html_node/Tilde-Expansion.html
 // this implementation takes care only of the most commonly used case (~/)
-private fun expandTilde(path: String): String = path.replaceFirst(Regex("^~"), System.getProperty("user.home"))
+private fun expandTilde(path: String): String = path.replaceFirst(Regex("^(!)?~"), "$1" + System.getProperty("user.home"))
 
 internal fun File.location(
     relative: Boolean
