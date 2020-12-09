@@ -1,6 +1,7 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm' apply false
   id 'com.github.breadmoirai.github-release'
+  id 'com.jfrog.bintray' version '1.8.5'
 }
 
 ext.versions = [
@@ -75,6 +76,38 @@ allprojects {
 }
 
 subprojects { subProject ->
+
+  if (subProject.name != 'ktlint') {
+    apply(plugin: 'maven-publish')
+    apply(plugin: 'ktlint-publication')
+  }
+
+  apply(plugin: 'com.jfrog.bintray')
+
+  bintray {
+    user = 'thecoden'
+    key = '40c6905eb242e8f912c95a6d8d9e587cb2e41b33'
+
+    publications = ['maven']
+
+    pkg {
+      repo = 'oss'
+      name = "io.codetactics.ktlint:${subProject.name}"
+      userOrg = 'codetactics'
+      licenses = ['MIT']
+      vcsUrl = 'https://github.com/codetactics/ktlint'
+      labels = ['fork']
+
+      publish = true
+      override = true
+
+      version {
+        name = rootProject.property("VERSION_NAME")
+        released = new Date()
+      }
+    }
+  }
+
   // Do not enabling explicit api for cli project
   if (subProject.name != "ktlint") {
     subProject.plugins.withId("org.jetbrains.kotlin.jvm") {

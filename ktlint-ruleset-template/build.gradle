@@ -1,24 +1,6 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm'
-  id 'java-library'
-  id 'maven'
-}
-
-group = 'com.github.username'
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-  classifier = 'sources'
-  from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = 'javadoc'
-  from javadoc.destinationDir
-}
-
-artifacts {
-  archives sourcesJar
-  archives javadocJar
+  id 'ktlint-publication'
 }
 
 configurations {
@@ -56,17 +38,3 @@ task ktlint(type: JavaExec, dependsOn: classes) {
 }
 
 check.dependsOn ktlint
-
-install {
-  repositories.mavenInstaller {
-    pom.project {
-      licenses {
-        license {
-          name 'The Apache Software License, Version 2.0'
-          url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          distribution 'repo'
-        }
-      }
-    }
-  }
-}
