@@ -1,30 +1,24 @@
 package com.pinterest.ktlint.internal
 
-import com.github.shyiko.klob.Glob
 import com.pinterest.ktlint.core.KtLint
 import com.pinterest.ktlint.core.LintError
 import com.pinterest.ktlint.core.RuleSet
 import java.io.File
+import java.nio.file.FileSystems
 import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.PathMatcher
 import kotlin.system.exitProcess
 
 internal val workDir: String = File(".").canonicalPath
 
 internal fun List<String>.fileSequence(): Sequence<File> {
-    val glob = if (isEmpty()) {
-        Glob.from("**/*.kt", "**/*.kts")
+    val patterns = if (isEmpty()) {
+       listOf("**/*.kt", "**/*.kts")
     } else {
-        Glob.from(*map(::expandTilde).toTypedArray())
+        map(::expandTilde).toList()
     }
 
-    return glob
-        .iterate(
-            Paths.get(workDir),
-            Glob.IterationOption.SKIP_HIDDEN
-        )
-        .asSequence()
-        .map(Path::toFile)
+    return FileMatcher(File(workDir), patterns).getFiles()
 }
 
 /**
@@ -101,3 +95,44 @@ internal fun formatFile(
             debug = debug
         )
     )
+
+
+internal class FileMatcher(val baseDirectory: File, patterns: List<String>) {
+
+    private val patterns = patterns.map {
+        println("Pattern : ${!it.startsWith("!")} : ${it.removePrefix("!")}")
+        Triple<Boolean, PathMatcher, String>(!it.startsWith("!"), FileSystems.getDefault().getPathMatcher("glob:${it.removePrefix("!")}"), it)
+    }
+
+    fun matches(path: Path): Boolean {
+        var isIncluded = false
+
+        for (pattern in patterns) {
+            if (isIncluded) {
+                if (!pattern.first) {
+                    isIncluded = !pattern.second.matches(path).also {
+                        println("$path : ${pattern.third} ${if (it) "excludes this file" else ""}")
+                    }
+                }
+            } else {
+                if (pattern.first) {
+                    isIncluded = pattern.second.matches(path).also {
+                        println("$path : ${pattern.third} ${if (it) "includes this file" else ""}")
+                    }
+                }
+            }
+        }
+
+        println("Checking : $isIncluded : $path")
+
+        return isIncluded
+    }
+
+    fun getFiles() = baseDirectory.walkTopDown().filter { file ->
+        if (file.isFile) {
+            matches(baseDirectory.toPath().relativize(file.toPath()))
+        } else {
+            false
+        }
+    }
+}
