@@ -11,6 +11,10 @@ import kotlin.system.exitProcess
 
 internal val workDir: String = File(".").canonicalPath
 
+/**
+ * For a list of Strings that represent file matching patterns,
+ * returns a [Sequence] of Files that match the patterns.
+ */
 internal fun List<String>.fileSequence(): Sequence<File> {
     val patterns = if (isEmpty()) {
        listOf("**/*.kt", "**/*.kts")
@@ -96,9 +100,20 @@ internal fun formatFile(
         )
     )
 
+/**
+ * Given a list of Patterns, provides Path matching
+ * and convenient searching for files that match.
+ */
 internal class FileMatcher(patterns: List<String>) {
 
     /**
+     * A list of [Triple] values, each representing an individual pattern
+     * and the important details of it.
+     * Each triple contains:
+     * - isNegated : Whether the pattern is used to exclude files from matching.
+     * - PathMatcher : The [PathMatcher] resulting from compiling the pattern.
+     * - The original pattern string, for debugging / logging purposes.
+     */
     private val patterns = patterns.map { pattern ->
         val patternType = if (pattern.startsWith("regex:")) {
             "regex"
@@ -117,31 +132,32 @@ internal class FileMatcher(patterns: List<String>) {
         Triple<Boolean, PathMatcher, String>(isNegated, FileSystems.getDefault().getPathMatcher("$patternType:$patternOnly"), pattern)
     }
 
+    /**
+     * Determine if the given [path] matches the list of file patterns.
+     * Be sure the path cardinality (relative or absolute), matches the
+     * cardinality of the patterns you are attempting to match.
+     */
     fun matches(path: Path): Boolean {
         var isIncluded = false
 
         for (pattern in patterns) {
             if (isIncluded) {
                 if (!pattern.first) {
-                    isIncluded = !pattern.second.matches(path).also {
-                        println("$path : ${pattern.third} ${if (it) "excludes this file" else ""}")
-                    }
+                    isIncluded = !pattern.second.matches(path)
                 }
             } else {
                 if (pattern.first) {
-                    isIncluded = pattern.second.matches(path).also {
-                        println("$path : ${pattern.third} ${if (it) "includes this file" else ""}")
-                    }
+                    isIncluded = pattern.second.matches(path)
                 }
             }
         }
 
-        println("Checking : $isIncluded : $path")
-
         return isIncluded
     }
 
-    fun getFiles() = baseDirectory.walkTopDown().filter { file ->
+    /**
+     * Get all files that match the given patterns in a directory tree.
+     */
     fun getFiles(baseDirectory: File) = baseDirectory.walkTopDown().filter { file ->
         if (file.isFile) {
             matches(baseDirectory.toPath().relativize(file.toPath()))
