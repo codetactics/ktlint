@@ -10,7 +10,7 @@ class FileUtilsTest {
 
     @Test
     fun negation() {
-        val filter = FileMatcher(File("/tmp"), listOf(
+        val filter = FileMatcher(listOf(
             "**.kt",
             "!**/*test*/**.kt",
             "!**/prefix*/**.kt",

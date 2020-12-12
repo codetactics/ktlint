@@ -18,7 +18,7 @@ internal fun List<String>.fileSequence(): Sequence<File> {
         map(::expandTilde).toList()
     }
 
-    return FileMatcher(File(workDir), patterns).getFiles()
+    return FileMatcher(patterns).getFiles(File(workDir))
 }
 
 /**
@@ -96,12 +96,25 @@ internal fun formatFile(
         )
     )
 
+internal class FileMatcher(patterns: List<String>) {
 
-internal class FileMatcher(val baseDirectory: File, patterns: List<String>) {
+    /**
+    private val patterns = patterns.map { pattern ->
+        val patternType = if (pattern.startsWith("regex:")) {
+            "regex"
+        } else {
+            "glob"
+        }
 
-    private val patterns = patterns.map {
-        println("Pattern : ${!it.startsWith("!")} : ${it.removePrefix("!")}")
-        Triple<Boolean, PathMatcher, String>(!it.startsWith("!"), FileSystems.getDefault().getPathMatcher("glob:${it.removePrefix("!")}"), it)
+        // Remove any pattern type prefix and determine if the pattern is negated.
+        val isNegated:Boolean
+        val patternOnly = pattern.removePrefix("$patternType:").let {
+            isNegated = !it.startsWith("!")
+            it.removePrefix("!")
+        }
+
+        // Create a Triple of isNegated, the resulting PathMatcher, and the original pattern.
+        Triple<Boolean, PathMatcher, String>(isNegated, FileSystems.getDefault().getPathMatcher("$patternType:$patternOnly"), pattern)
     }
 
     fun matches(path: Path): Boolean {
@@ -129,6 +142,7 @@ internal class FileMatcher(val baseDirectory: File, patterns: List<String>) {
     }
 
     fun getFiles() = baseDirectory.walkTopDown().filter { file ->
+    fun getFiles(baseDirectory: File) = baseDirectory.walkTopDown().filter { file ->
         if (file.isFile) {
             matches(baseDirectory.toPath().relativize(file.toPath()))
         } else {
