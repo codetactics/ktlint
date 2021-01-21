@@ -85,8 +85,8 @@ subprojects { subProject ->
   apply(plugin: 'com.jfrog.bintray')
 
   bintray {
-    user = 'thecoden'
-    key = '40c6905eb242e8f912c95a6d8d9e587cb2e41b33'
+    user = property("repo.codetactics-bintray.username")
+    key = property("repo.codetactics-bintray.password")
 
     publications = ['maven']
 
